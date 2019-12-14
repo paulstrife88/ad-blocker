@@ -73,12 +73,28 @@ check_user () {
 # fetch the blocklist from yoyo.org and update the path element
 # for each entry to comply with the Synology setup
 fetch_blocklist () {
-  BlocklistURL="http://pgl.yoyo.org/as/serverlist.php?hostformat=bindconfig&showintro=0&mimetype=plaintext"
+  #BlocklistURL="http://pgl.yoyo.org/as/serverlist.php?hostformat=bindconfig&showintro=0&mimetype=plaintext"
 
   # the "-O-" tells wget to send the file to standard out instead of a real file
   # this makes it suitable for piping and eliminates need for another temp file
-  wget -O- "$BlocklistURL" | \
-    sed -e 's/null.zone.file/\/etc\/zone\/master\/null.zone.file/g' > "/tmp/ad-blocker.new"
+  #wget -O- "$BlocklistURL" | \
+  #  sed -e 's/null.zone.file/\/etc\/zone\/master\/null.zone.file/g' > "/tmp/ad-blocker.new"
+  curl https://gist.githubusercontent.com/paulstrife88/c0579fc0150e3fc221f5215eabb52792/raw/330b1eac6d1a61299d9fde17cd94fc9f6cdf3e52/jp_hosts > /tmp/ad-blocker.new
+  curl http://winhelp2002.mvps.org/hosts.txt >> /tmp/ad-blocker.new
+  curl https://logroid.github.io/blogger/file/hosts.txt >> /tmp/ad-blocker.new
+  curl https://warui.intaa.net/adhosts/hosts_lb.txt >> /tmp/ad-blocker.new
+  
+  echo "Processing the hosts list..."
+  sed -i '/^[^0-9]/d' /tmp/ad-blocker.new
+  sed -i 's/#.*$//g' /tmp/ad-blocker.new
+  sed -i 's/0.0.0.0 /zone "/g' /tmp/ad-blocker.new
+  sed -i 's/127.0.0.1 /zone "/g' /tmp/ad-blocker.new
+  sort -u /tmp/ad-blocker.new -o /tmp/ad-blocker-sorted.new
+  uniq -u /tmp/ad-blocker-sorted.new /tmp/ad-blocker.new
+  sed -i 's/^M//g' /tmp/ad-blocker.new
+  sed -i '/^$/d' /tmp/ad-blocker.new
+  sed -i '$!N; /^\(.*\)\n\1$/!P; D' /tmp/ad-blocker.new
+  sed -i 's/$/" { type master; notify no; file "\/etc\/zone\/master\/null.zone.file"; };/g' ad-blocker.new
 }
 
 # user-specified list of domains to be blocked in addition to those from yoyo.org
